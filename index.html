@@ -407,8 +407,8 @@
 <main>
   <!-- API KEY BAR -->
   <div class="api-key-bar">
-    <label>🔑 Anthropic API Key</label>
-    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." oninput="onApiKeyChange()" />
+    <label>🔑 OpenRouter API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-or-v1-..." oninput="onApiKeyChange()" />
     <span class="api-key-status" id="apiKeyStatus">Chưa đặt</span>
   </div>
 
@@ -554,8 +554,11 @@
 
 <script>
 /* ────────────────────────────────────────────
-   STATE
+   STATE & CONFIGURATION
 ──────────────────────────────────────────── */
+// 💥 ĐIỀN API KEY CỦA BẠN VÀO GIỮA HAI DẤU NHÁY DƯỚI ĐÂY ĐỂ CHẠY CỨNG TRÊN GITHUB PAGES!
+const HARDCODED_API_KEY = "sk-or-v1-MÃ_KEY_CỦA_BẠN_Ở_ĐÂY";
+
 let expenses = JSON.parse(localStorage.getItem('mc_expenses') || '[]');
 let editingId = null;
 let aiSuggestedCat = null;
@@ -600,26 +603,38 @@ function toggleTheme() {
   }
 }
 
-// Load saved theme
 window.addEventListener('load', () => {
   const savedTheme = localStorage.getItem('mc_theme') || 'dark';
   if (savedTheme === 'light') {
     document.body.classList.add('light');
     document.getElementById('themeToggle').textContent = '☀️';
   }
+  
+  // Khởi tạo trạng thái API Key khi tải trang
+  if (HARDCODED_API_KEY && HARDCODED_API_KEY !== "sk-or-v1-MÃ_KEY_CỦA_BẠN_Ở_ĐÂY") {
+    document.getElementById('apiKeyInput').value = HARDCODED_API_KEY;
+    const s = document.getElementById('apiKeyStatus');
+    s.textContent = '✓ Sẵn sàng (Mã Cố Định)';
+    s.className = 'api-key-status set';
+  }
 });
 
 /* ────────────────────────────────────────────
    HELPERS
 ──────────────────────────────────────────── */
-function fmt(n) {
-  return '₫' + Math.round(n).toLocaleString('vi-VN');
+function fmt(n) { return '₫' + Math.round(n).toLocaleString('vi-VN'); }
+
+function getActiveApiKey() { 
+  if (HARDCODED_API_KEY && HARDCODED_API_KEY !== "sk-or-v1-MÃ_KEY_CỦA_BẠN_Ở_ĐÂY") {
+    return HARDCODED_API_KEY;
+  }
+  return document.getElementById('apiKeyInput').value.trim(); 
 }
-function getApiKey() { return document.getElementById('apiKeyInput').value.trim(); }
+
 function onApiKeyChange() {
-  const k = getApiKey();
+  const k = document.getElementById('apiKeyInput').value.trim();
   const s = document.getElementById('apiKeyStatus');
-  if (k.startsWith('sk-')) { s.textContent = '✓ Đã đặt'; s.className = 'api-key-status set'; }
+  if (k.startsWith('sk-or-')) { s.textContent = '✓ Đã nhập Key'; s.className = 'api-key-status set'; }
   else { s.textContent = 'Chưa đặt'; s.className = 'api-key-status'; }
 }
 
@@ -721,7 +736,7 @@ function fmtDate(d) {
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* ────────────────────────────────────────────
-   MODAL
+   MODAL ACTIONS
 ──────────────────────────────────────────── */
 function openModal(id=null) {
   editingId = id;
@@ -795,7 +810,7 @@ function deleteExpense(id) {
 }
 
 /* ────────────────────────────────────────────
-   AI AUTO-CATEGORIZE (Tiếng Việt)
+   AI AUTO-CATEGORIZE (FIX CÓ HEADER GIÚP CHẠY TRÊN GITHUB)
 ──────────────────────────────────────────── */
 function onNoteChange() {
   clearTimeout(noteDebounce);
@@ -804,7 +819,7 @@ function onNoteChange() {
 
 async function triggerAiCategorize() {
   const note = document.getElementById('fNote').value.trim();
-  const key  = getApiKey();
+  const key  = getActiveApiKey();
   if (!note || note.length < 3 || !key) return;
 
   const box = document.getElementById('aiSuggestBox');
@@ -819,11 +834,18 @@ async function triggerAiCategorize() {
   aiSuggestedCat = null;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version':'2023-06-01' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Authorization': `Bearer ${key}`,
+        'HTTP-Referer': window.location.href, // Bắt buộc cho Github Pages
+        'X-Title': 'MoneyCat Web App'          // Bắt buộc cho Github Pages
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 60,
+        model: 'google/gemini-flash-1.5-8b',
+        max_tokens: 30,
+        temperature: 0,
         messages: [{
           role: 'user',
           content: `Bạn là một chuyên gia phân loại chi tiêu bằng tiếng Việt. Dựa trên mô tả khoản chi sau đây, hãy chọn CHÍNH XÁC một danh mục phù hợp từ danh sách bên dưới. Chỉ phản hồi DUY NHẤT chuỗi ký tự của danh mục được chọn, không thêm bất kỳ từ ngữ, dấu câu hay lời giải thích nào khác:\n${CATEGORIES.join('\n')}\n\nKhoản chi: "${note}"`
@@ -831,7 +853,7 @@ async function triggerAiCategorize() {
       })
     });
     const data = await res.json();
-    const suggested = data.content?.[0]?.text?.trim();
+    const suggested = data.choices?.[0]?.message?.content?.trim();
     if (suggested && CATEGORIES.includes(suggested)) {
       aiSuggestedCat = suggested;
       spinner.style.display = 'none';
@@ -853,7 +875,7 @@ function applyAiCategory() {
 }
 
 /* ────────────────────────────────────────────
-   AI CHAT (Tiếng Việt)
+   AI CHAT (FIX CÓ HEADER GIÚP CHẠY TRÊN GITHUB)
 ──────────────────────────────────────────── */
 function toggleChat() {
   chatOpen = !chatOpen;
@@ -865,38 +887,48 @@ async function sendChat() {
   const input = document.getElementById('chatInput');
   const q = input.value.trim();
   if (!q) return;
-  const key = getApiKey();
+  const key = getActiveApiKey();
   input.value = '';
 
   appendMsg(q, 'user');
 
   if (!key) {
-    appendMsg('⚠️ Vui lòng nhập Anthropic API key để sử dụng chat AI.', 'ai');
+    appendMsg('⚠️ Vui lòng nhập hoặc cấu hình OpenRouter API key để sử dụng chat AI.', 'ai');
     return;
   }
 
   const loadId = appendMsg('Đang suy nghĩ…', 'ai loading');
 
-  // Build context from expenses (Vietnamese)
   const context = expenses.length
     ? `Dữ liệu chi tiêu hiện tại (JSON):\n${JSON.stringify(expenses.map(e=>({amount:e.amount,category:e.category,date:e.date,note:e.note})))}\n\nTổng số khoản chi: ${expenses.length}, Tổng số tiền đã tiêu: ${expenses.reduce((s,e)=>s+e.amount,0)} VND.`
     : 'Chưa có khoản chi tiêu nào được ghi lại.';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version':'2023-06-01' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Authorization': `Bearer ${key}`,
+        'HTTP-Referer': window.location.href, // Bắt buộc cho Github Pages
+        'X-Title': 'MoneyCat Web App'          // Bắt buộc cho Github Pages
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6', max_tokens: 300,
-        system: `Bạn là MoneyCat AI, một trợ lý tài chính cá nhân thân thiện và thông minh. Bạn nói tiếng Việt chuẩn, tự nhiên và hiểu sâu sắc ngữ cảnh Việt Nam. Hãy trả lời câu hỏi của người dùng về các khoản chi tiêu của họ một cách ngắn gọn, súc tích (tối đa 2-3 câu). Luôn định dạng tiền tệ theo kiểu Việt Nam (ví dụ: 50.000₫ hoặc ₫50.000). Ngữ cảnh dữ liệu hiện tại:\n${context}`,
-        messages: [{ role:'user', content: q }]
+        model: 'google/gemini-2.5-flash',
+        max_tokens: 300,
+        messages: [
+          { 
+            role: 'system', 
+            content: `Bạn là MoneyCat AI, một trợ lý tài chính cá nhân thân thiện và thông minh. Bạn nói tiếng Việt chuẩn, tự nhiên và hiểu sâu sắc ngữ cảnh Việt Nam. Hãy trả lời câu hỏi của người dùng về các khoản chi tiêu của họ một cách ngắn gọn, súc tích (tối đa 2-3 câu). Luôn định dạng tiền tệ theo kiểu Việt Nam (ví dụ: 50.000₫ hoặc ₫50.000). Ngữ cảnh dữ liệu hiện tại:\n${context}` 
+          },
+          { role: 'user', content: q }
+        ]
       })
     });
     const data = await res.json();
-    const reply = data.content?.[0]?.text?.trim() || 'Xin lỗi, tôi không thể xử lý yêu cầu lúc này.';
+    const reply = data.choices?.[0]?.message?.content?.trim() || 'Xin lỗi, tôi không thể xử lý yêu cầu lúc này.';
     updateMsg(loadId, reply);
   } catch (err) {
-    updateMsg(loadId, '⚠️ Lỗi kết nối mạng hoặc API key không hợp lệ. Vui lòng kiểm tra lại.');
+    updateMsg(loadId, '⚠️ Lỗi kết nối mạng hoặc OpenRouter API key không hợp lệ. Vui lòng kiểm tra lại.');
   }
 }
 
