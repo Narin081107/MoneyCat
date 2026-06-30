@@ -374,7 +374,7 @@ function fmtDate(d) {
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* ────────────────────────────────────────────
-   MODAL ACTIONS (ĐÃ FIX LỖI Ở ĐÂY)
+   MODAL ACTIONS (FIXED)
 ──────────────────────────────────────────── */
 function openModal(id=null) {
   editingId = id;
