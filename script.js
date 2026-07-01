@@ -1,7 +1,7 @@
 /* ────────────────────────────────────────────
    STATE & CONFIGURATION
 ──────────────────────────────────────────── */
-const HARDCODED_API_KEY = "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";
+const HARDCODED_API_KEY = "AQ.Ab8RN6L6Jp1QYG0dk74KI1hCDfGnbxeme3x2UKRE44YEEAO27A";
 
 let expenses = [];
 let editingId = null;
@@ -24,7 +24,7 @@ const CAT_COLORS = {
   '🛍️ Mua Sắm':    '#ec4899',
   '💊 Sức Khỏe':       '#34d399',
   '📚 Giáo Dục':    '#6c63ff',
-  '🎮 Giải Trí':'#a78bfa',
+  '🎮 Giải Trí': '#a78bfa',
   '🏠 Nhà Cửa':      '#f87171',
   '💡 Tiện Ích':    '#fbbf24',
   '✈️ Du Lịch':       '#06b6d4',
@@ -37,7 +37,7 @@ function save() {
 }
 
 /* ────────────────────────────────────────────
-   AUTH (ĐĂNG NHẬP / ĐĂNG KÝ — giả lập client-side)
+   AUTH (ĐĂNG NHẬP / ĐĂNG KÝ)
 ──────────────────────────────────────────── */
 function simpleHash(str) {
   let h = 0;
@@ -53,10 +53,17 @@ function saveUsers(users) {
 }
 
 function switchAuthTab(tab) {
-  document.getElementById('tabLoginBtn').classList.toggle('active', tab === 'login');
-  document.getElementById('tabRegisterBtn').classList.toggle('active', tab === 'register');
-  document.getElementById('loginPanel').classList.toggle('active', tab === 'login');
-  document.getElementById('registerPanel').classList.toggle('active', tab === 'register');
+  const isLogin = (tab === 'login');
+  
+  // Thêm/Xóa class active cho tab tiêu đề
+  document.getElementById('tabLoginBtn').classList.toggle('active', isLogin);
+  document.getElementById('tabRegisterBtn').classList.toggle('active', !isLogin);
+  
+  // Ẩn/Hiện panel biểu mẫu tương ứng
+  document.getElementById('loginPanel').classList.toggle('active', isLogin);
+  document.getElementById('registerPanel').classList.toggle('active', !isLogin);
+  
+  // Xóa thông báo lỗi cũ
   document.getElementById('loginError').textContent = '';
   document.getElementById('registerError').textContent = '';
 }
@@ -374,7 +381,7 @@ function fmtDate(d) {
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* ────────────────────────────────────────────
-   MODAL ACTIONS (FIXED)
+   MODAL ACTIONS
 ──────────────────────────────────────────── */
 function openModal(id=null) {
   editingId = id;
