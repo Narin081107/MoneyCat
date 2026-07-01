@@ -2,7 +2,7 @@
    STATE & CONFIGURATION
 ──────────────────────────────────────────── */
 // 💥 ĐIỀN API KEY CỦA BẠN VÀO GIỮA HAI DẤU NHÁY DƯỚI ĐÂY ĐỂ CHẠY CỨNG TRÊN GITHUB PAGES!
-const HARDCODED_API_KEY = "AQ.Ab8RN6L6Jp1QYG0dk74KI1hCDfGnbxeme3x2UKRE44YEEAO27A";
+const HARDCODED_API_KEY = "AQ.Ab8RN6JCVIJ_rziM9Fef-BsBHHaYmHwrNKFjTgPzA2AKhJM-lg";
 
 let expenses = [];
 let editingId = null;
